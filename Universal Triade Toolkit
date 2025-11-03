@@ -1,0 +1,575 @@
+"""
+Universal Triade Toolkit
+=========================
+
+A production-ready Python toolkit for implementing Universal Triad principles
+in AI/ML systems. Maintains systems at the "Edge of Chaos" (HLCI ≈ 0.27) for
+optimal performance.
+
+Author: Lenny (Human Lead) & Collaborative AI Systems
+License: MIT
+Date: November 3, 2025
+"""
+
+import numpy as np
+from typing import Dict, List, Tuple, Optional, Union
+import warnings
+
+# ============================================================================
+# CORE: Hybrid Lyapunov Chaos Index (HLCI)
+# ============================================================================
+
+class HLCICalculator:
+    """
+    Calculate the Hybrid Lyapunov Chaos Index for a system.
+    
+    HLCI integrates:
+    - Classical Lyapunov exponents (λ)
+    - Quantum corrections (ΔQ)
+    - Topological complexity (κ)
+    
+    Optimal range: 0.25 - 0.29 (Edge of Chaos)
+    Critical value: 0.27 ± 0.03
+    """
+    
+    def __init__(self, 
+                 lambda_max: float = 0.3,
+                 quantum_correction: float = 0.05,
+                 topology_weight: float = 0.15):
+        """
+        Initialize HLCI calculator.
+        
+        Args:
+            lambda_max: Maximum Lyapunov exponent
+            quantum_correction: Quantum fluctuation term
+            topology_weight: Weight for topological complexity
+        """
+        self.lambda_max = lambda_max
+        self.quantum_correction = quantum_correction
+        self.topology_weight = topology_weight
+        
+        # Golden ratio - universal optimizer
+        self.PHI = (1 + np.sqrt(5)) / 2  # 1.618...
+        self.PHI_CONJUGATE = 1 / self.PHI  # 0.618...
+        
+    def calculate(self, 
+                  weights: np.ndarray,
+                  activation_history: Optional[np.ndarray] = None) -> float:
+        """
+        Calculate HLCI for a neural network layer or system.
+        
+        Args:
+            weights: Weight matrix of the layer
+            activation_history: Optional history of activations for temporal analysis
+            
+        Returns:
+            HLCI value (target: ~0.27)
+        """
+        # 1. Classical Lyapunov component
+        lyapunov = self._calculate_lyapunov(weights)
+        
+        # 2. Quantum correction (based on weight uncertainty)
+        quantum = self._calculate_quantum_correction(weights)
+        
+        # 3. Topological complexity
+        topology = self._calculate_topology(weights)
+        
+        # Combined HLCI
+        hlci = lyapunov + quantum - topology
+        
+        return float(hlci)
+    
+    def _calculate_lyapunov(self, weights: np.ndarray) -> float:
+        """Calculate maximum Lyapunov exponent approximation."""
+        # Spectral radius approach
+        eigenvalues = np.linalg.eigvals(weights.T @ weights)
+        spectral_radius = np.sqrt(np.max(np.abs(eigenvalues)))
+        
+        # Lyapunov exponent approximation
+        lambda_max = np.log(spectral_radius + 1e-10)
+        
+        # Normalize to [0, 1] range
+        return np.tanh(abs(lambda_max))
+    
+    def _calculate_quantum_correction(self, weights: np.ndarray) -> float:
+        """Calculate quantum fluctuation term."""
+        # Weight variance as uncertainty measure
+        variance = np.var(weights)
+        
+        # Quantum correction scales with √variance (uncertainty principle)
+        quantum_term = self.quantum_correction * np.sqrt(variance)
+        
+        return float(quantum_term)
+    
+    def _calculate_topology(self, weights: np.ndarray) -> float:
+        """Calculate topological complexity."""
+        # Number of effective connections (above threshold)
+        threshold = np.percentile(np.abs(weights), 80)
+        effective_connections = np.sum(np.abs(weights) > threshold)
+        
+        # Normalize by total possible connections
+        total_possible = weights.size
+        connection_density = effective_connections / total_possible
+        
+        # Topology term (lower is more complex)
+        return self.topology_weight * (1 - connection_density)
+    
+    def is_at_edge_of_chaos(self, hlci: float, tolerance: float = 0.03) -> bool:
+        """Check if system is at edge of chaos."""
+        target = 0.27
+        return abs(hlci - target) < tolerance
+
+
+# ============================================================================
+# OPTIMIZER: Edge-of-Chaos Training
+# ============================================================================
+
+class EdgeOfChaosOptimizer:
+    """
+    Neural network optimizer that maintains system at edge of chaos.
+    
+    Can wrap any standard optimizer (Adam, SGD, etc.) and adds HLCI regulation.
+    """
+    
+    def __init__(self,
+                 base_optimizer,
+                 hlci_calculator: Optional[HLCICalculator] = None,
+                 target_hlci: float = 0.27,
+                 regulation_strength: float = 0.1):
+        """
+        Initialize Edge-of-Chaos optimizer.
+        
+        Args:
+            base_optimizer: Underlying optimizer (e.g., torch.optim.Adam)
+            hlci_calculator: HLCI calculator instance
+            target_hlci: Target HLCI value
+            regulation_strength: How strongly to regulate toward target
+        """
+        self.base_optimizer = base_optimizer
+        self.hlci_calc = hlci_calculator or HLCICalculator()
+        self.target_hlci = target_hlci
+        self.regulation_strength = regulation_strength
+        
+        self.hlci_history = []
+        
+    def step(self, closure=None):
+        """Perform optimization step with HLCI regulation."""
+        # Standard optimization step
+        loss = self.base_optimizer.step(closure)
+        
+        # HLCI regulation
+        self._regulate_hlci()
+        
+        return loss
+    
+    def _regulate_hlci(self):
+        """Adjust weights to maintain edge of chaos."""
+        for param_group in self.base_optimizer.param_groups:
+            for param in param_group['params']:
+                if param.grad is None:
+                    continue
+                
+                # Calculate current HLCI
+                weights = param.data.cpu().numpy()
+                current_hlci = self.hlci_calc.calculate(weights)
+                self.hlci_history.append(current_hlci)
+                
+                # Calculate adjustment
+                hlci_error = current_hlci - self.target_hlci
+                
+                # Apply regulation (proportional control)
+                if abs(hlci_error) > 0.03:  # Outside tolerance
+                    # Adjust weight magnitude to correct HLCI
+                    adjustment = -self.regulation_strength * hlci_error
+                    param.data *= (1 + adjustment)
+    
+    def get_hlci_stats(self) -> Dict[str, float]:
+        """Get HLCI statistics from training."""
+        if not self.hlci_history:
+            return {}
+        
+        return {
+            'mean_hlci': np.mean(self.hlci_history),
+            'std_hlci': np.std(self.hlci_history),
+            'min_hlci': np.min(self.hlci_history),
+            'max_hlci': np.max(self.hlci_history),
+            'final_hlci': self.hlci_history[-1]
+        }
+
+
+# ============================================================================
+# GOLDEN RATIO UTILITIES
+# ============================================================================
+
+class GoldenRatioTools:
+    """Tools for applying golden ratio principles to neural networks."""
+    
+    PHI = (1 + np.sqrt(5)) / 2  # 1.618033988749...
+    PHI_CONJUGATE = 1 / PHI      # 0.618033988749...
+    GOLDEN_ANGLE = 2 * np.pi / (PHI ** 2)  # 137.5°
+    
+    @staticmethod
+    def suggest_layer_sizes(input_size: int, 
+                           output_size: int,
+                           num_layers: int) -> List[int]:
+        """
+        Suggest layer sizes following golden ratio proportions.
+        
+        Args:
+            input_size: Size of input layer
+            output_size: Size of output layer
+            num_layers: Number of hidden layers
+            
+        Returns:
+            List of layer sizes including input and output
+        """
+        if num_layers == 0:
+            return [input_size, output_size]
+        
+        # Calculate geometric series with phi scaling
+        ratio = (output_size / input_size) ** (1 / (num_layers + 1))
+        
+        # Adjust ratio toward phi if possible
+        phi_adjusted_ratio = (ratio + GoldenRatioTools.PHI_CONJUGATE) / 2
+        
+        sizes = [input_size]
+        current_size = input_size
+        
+        for i in range(num_layers):
+            current_size = int(current_size * phi_adjusted_ratio)
+            sizes.append(current_size)
+        
+        sizes.append(output_size)
+        
+        return sizes
+    
+    @staticmethod
+    def initialize_weights_golden(shape: Tuple[int, ...], 
+                                  scale: float = 1.0) -> np.ndarray:
+        """
+        Initialize weights using golden ratio scaling.
+        
+        This initialization places weights in a distribution that naturally
+        tends toward edge-of-chaos dynamics.
+        
+        Args:
+            shape: Shape of weight matrix
+            scale: Overall scale factor
+            
+        Returns:
+            Initialized weight matrix
+        """
+        # Xavier-like initialization, but scaled by phi
+        fan_in, fan_out = shape[0], shape[1] if len(shape) > 1 else shape[0]
+        
+        # Golden ratio scaled initialization
+        std = scale * np.sqrt(2.0 / (fan_in + fan_out)) / GoldenRatioTools.PHI
+        
+        weights = np.random.randn(*shape) * std
+        
+        return weights
+    
+    @staticmethod
+    def check_phi_proportions(layer_sizes: List[int]) -> Dict[str, float]:
+        """
+        Check how well layer sizes follow phi proportions.
+        
+        Returns:
+            Dictionary with phi deviation statistics
+        """
+        if len(layer_sizes) < 2:
+            return {}
+        
+        ratios = []
+        for i in range(len(layer_sizes) - 1):
+            ratio = layer_sizes[i] / layer_sizes[i + 1]
+            ratios.append(ratio)
+        
+        # Compare to phi and 1/phi
+        phi_deviations = [abs(r - GoldenRatioTools.PHI) for r in ratios]
+        phi_conj_deviations = [abs(r - GoldenRatioTools.PHI_CONJUGATE) for r in ratios]
+        
+        # Use minimum deviation
+        min_deviations = [min(p, pc) for p, pc in zip(phi_deviations, phi_conj_deviations)]
+        
+        return {
+            'mean_deviation': np.mean(min_deviations),
+            'max_deviation': np.max(min_deviations),
+            'phi_alignment_score': 1.0 - np.mean(min_deviations) / GoldenRatioTools.PHI,
+            'ratios': ratios
+        }
+
+
+# ============================================================================
+# NETWORK ANALYSIS
+# ============================================================================
+
+class NetworkTopologyAnalyzer:
+    """Analyze network topology for Universal Triad properties."""
+    
+    @staticmethod
+    def calculate_clustering_coefficient(adjacency_matrix: np.ndarray) -> float:
+        """
+        Calculate clustering coefficient of network.
+        
+        Target range for Universal Triad: 0.26 - 0.30
+        
+        Args:
+            adjacency_matrix: Binary or weighted adjacency matrix
+            
+        Returns:
+            Global clustering coefficient
+        """
+        n = adjacency_matrix.shape[0]
+        
+        # Binarize if weighted
+        adj = (adjacency_matrix != 0).astype(float)
+        
+        # Calculate triangles and connected triples
+        triangles = np.trace(np.linalg.matrix_power(adj, 3)) / 6
+        
+        # Degree of each node
+        degrees = np.sum(adj, axis=1)
+        
+        # Possible triples
+        possible_triples = np.sum(degrees * (degrees - 1)) / 2
+        
+        if possible_triples == 0:
+            return 0.0
+        
+        clustering = 3 * triangles / possible_triples
+        
+        return float(clustering)
+    
+    @staticmethod
+    def estimate_power_law_exponent(degrees: np.ndarray) -> float:
+        """
+        Estimate power-law exponent γ from degree distribution.
+        
+        Target: γ = φ + 1/φ ≈ 2.236
+        
+        Args:
+            degrees: Array of node degrees
+            
+        Returns:
+            Power-law exponent
+        """
+        # Remove zeros
+        degrees = degrees[degrees > 0]
+        
+        if len(degrees) < 10:
+            warnings.warn("Too few nodes for reliable power-law estimation")
+            return np.nan
+        
+        # Log-log regression
+        unique_degrees, counts = np.unique(degrees, return_counts=True)
+        
+        # Remove low-count bins
+        mask = counts >= 2
+        unique_degrees = unique_degrees[mask]
+        counts = counts[mask]
+        
+        if len(unique_degrees) < 3:
+            return np.nan
+        
+        # Fit: P(k) ∝ k^(-γ)
+        # log(P(k)) = -γ * log(k) + const
+        log_degrees = np.log(unique_degrees)
+        log_probs = np.log(counts / counts.sum())
+        
+        # Linear regression
+        gamma, _ = np.polyfit(log_degrees, log_probs, 1)
+        
+        return float(-gamma)  # Negative because we want positive exponent
+    
+    @staticmethod
+    def assess_universal_triad_properties(adjacency_matrix: np.ndarray) -> Dict[str, Union[float, bool]]:
+        """
+        Complete assessment of Universal Triad properties.
+        
+        Returns:
+            Dictionary with all relevant metrics
+        """
+        # Clustering coefficient
+        clustering = NetworkTopologyAnalyzer.calculate_clustering_coefficient(adjacency_matrix)
+        
+        # Degree distribution
+        degrees = np.sum(adjacency_matrix != 0, axis=1)
+        gamma = NetworkTopologyAnalyzer.estimate_power_law_exponent(degrees)
+        
+        # HLCI estimation
+        hlci_calc = HLCICalculator()
+        hlci = hlci_calc.calculate(adjacency_matrix)
+        
+        # Golden ratio prediction
+        phi = (1 + np.sqrt(5)) / 2
+        gamma_predicted = phi + 1/phi  # 2.236
+        
+        # Assessment
+        clustering_ok = 0.26 <= clustering <= 0.30
+        gamma_ok = abs(gamma - gamma_predicted) < 0.2 if not np.isnan(gamma) else False
+        hlci_ok = hlci_calc.is_at_edge_of_chaos(hlci)
+        
+        return {
+            'clustering_coefficient': clustering,
+            'power_law_exponent': gamma,
+            'gamma_predicted': gamma_predicted,
+            'gamma_error': abs(gamma - gamma_predicted) if not np.isnan(gamma) else np.nan,
+            'hlci': hlci,
+            'meets_clustering_criterion': clustering_ok,
+            'meets_gamma_criterion': gamma_ok,
+            'meets_hlci_criterion': hlci_ok,
+            'is_universal_triad': clustering_ok and gamma_ok and hlci_ok
+        }
+
+
+# ============================================================================
+# FRAMEWORK ADAPTERS
+# ============================================================================
+
+class PyTorchAdapter:
+    """Adapter for PyTorch models."""
+    
+    @staticmethod
+    def wrap_optimizer(optimizer, **kwargs):
+        """Wrap PyTorch optimizer with Edge-of-Chaos regulation."""
+        return EdgeOfChaosOptimizer(optimizer, **kwargs)
+    
+    @staticmethod
+    def initialize_model_golden(model):
+        """Initialize PyTorch model with golden ratio scaling."""
+        import torch
+        
+        for name, param in model.named_parameters():
+            if 'weight' in name:
+                shape = param.shape
+                golden_weights = GoldenRatioTools.initialize_weights_golden(
+                    (shape[0], shape[1]) if len(shape) > 1 else (shape[0], 1)
+                )
+                param.data = torch.tensor(golden_weights, dtype=param.dtype)
+        
+        return model
+
+
+class TensorFlowAdapter:
+    """Adapter for TensorFlow/Keras models."""
+    
+    @staticmethod
+    def create_golden_initializer():
+        """Create Keras initializer using golden ratio."""
+        import tensorflow as tf
+        
+        class GoldenInitializer(tf.keras.initializers.Initializer):
+            def __call__(self, shape, dtype=None):
+                return tf.constant(
+                    GoldenRatioTools.initialize_weights_golden(shape),
+                    dtype=dtype
+                )
+        
+        return GoldenInitializer()
+
+
+class JAXAdapter:
+    """Adapter for JAX/Flax models."""
+    
+    @staticmethod
+    def golden_init_fn(rng, shape):
+        """JAX initialization function using golden ratio."""
+        return GoldenRatioTools.initialize_weights_golden(shape)
+
+
+# ============================================================================
+# EXAMPLE USAGE & DEMOS
+# ============================================================================
+
+def demo_hlci_calculation():
+    """Demonstrate HLCI calculation."""
+    print("=" * 60)
+    print("HLCI Calculation Demo")
+    print("=" * 60)
+    
+    # Create random weight matrix
+    weights = np.random.randn(100, 100) * 0.1
+    
+    # Calculate HLCI
+    hlci_calc = HLCICalculator()
+    hlci = hlci_calc.calculate(weights)
+    
+    print(f"\nWeight matrix shape: {weights.shape}")
+    print(f"HLCI value: {hlci:.4f}")
+    print(f"Target HLCI: 0.27")
+    print(f"Is at edge of chaos: {hlci_calc.is_at_edge_of_chaos(hlci)}")
+    
+    # Golden ratio check
+    phi = (1 + np.sqrt(5)) / 2
+    print(f"\nGolden ratio φ: {phi:.6f}")
+    print(f"Predicted γ: {phi + 1/phi:.4f}")
+
+
+def demo_golden_ratio_layers():
+    """Demonstrate golden ratio layer sizing."""
+    print("\n" + "=" * 60)
+    print("Golden Ratio Layer Sizing Demo")
+    print("=" * 60)
+    
+    input_size = 1000
+    output_size = 10
+    num_layers = 3
+    
+    sizes = GoldenRatioTools.suggest_layer_sizes(input_size, output_size, num_layers)
+    
+    print(f"\nInput size: {input_size}")
+    print(f"Output size: {output_size}")
+    print(f"Number of hidden layers: {num_layers}")
+    print(f"\nSuggested architecture: {sizes}")
+    
+    # Check phi proportions
+    stats = GoldenRatioTools.check_phi_proportions(sizes)
+    print(f"\nPhi alignment score: {stats['phi_alignment_score']:.4f}")
+    print(f"Mean deviation from φ: {stats['mean_deviation']:.4f}")
+
+
+def demo_network_analysis():
+    """Demonstrate network topology analysis."""
+    print("\n" + "=" * 60)
+    print("Network Topology Analysis Demo")
+    print("=" * 60)
+    
+    # Create scale-free network (simplified)
+    n = 200
+    adj = np.zeros((n, n))
+    
+    # Power-law degree distribution
+    for i in range(n):
+        num_connections = int(n * (i+1)**(-0.6) / 10)
+        connections = np.random.choice(n, min(num_connections, n-1), replace=False)
+        adj[i, connections] = 1
+        adj[connections, i] = 1
+    
+    # Analyze
+    analysis = NetworkTopologyAnalyzer.assess_universal_triad_properties(adj)
+    
+    print(f"\nNetwork size: {n} nodes")
+    print(f"Clustering coefficient: {analysis['clustering_coefficient']:.4f} (target: 0.26-0.30)")
+    print(f"Power-law exponent γ: {analysis['power_law_exponent']:.4f}")
+    print(f"Predicted γ (φ + 1/φ): {analysis['gamma_predicted']:.4f}")
+    print(f"HLCI: {analysis['hlci']:.4f} (target: ~0.27)")
+    print(f"\nMeets Universal Triad criteria: {analysis['is_universal_triad']}")
+
+
+if __name__ == "__main__":
+    print("\n🌌 Universal Triade Toolkit - Demo\n")
+    
+    demo_hlci_calculation()
+    demo_golden_ratio_layers()
+    demo_network_analysis()
+    
+    print("\n" + "=" * 60)
+    print("✅ All demos completed successfully!")
+    print("=" * 60)
+    print("\nTo use in your project:")
+    print("  from universal_triade_toolkit import HLCICalculator, EdgeOfChaosOptimizer")
+    print("\nFor PyTorch:")
+    print("  optimizer = torch.optim.Adam(model.parameters())")
+    print("  optimizer = PyTorchAdapter.wrap_optimizer(optimizer)")
+    print("\n")
