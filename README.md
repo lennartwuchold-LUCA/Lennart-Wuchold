@@ -1,5 +1,25 @@
 # Universal Triad - Edge of Chaos Computing - L. Wuchold
 universal-triad-launch: Edge-of-Chaos computing framework: Neural, mycelial, and cosmic networks show 91% topological similarity across 32 orders of magnitude. All converge at HLCI ≈ 0.27, predicted by golden ratio. Production-ready toolkit for AI optimization.
+
+# ⚠️ THIS RESEARCH HAS BEEN RETRACTED
+
+**Status:** FULLY RETRACTED as of November 4, 2025
+
+**Reason:** Falsification testing revealed all core claims were invalid.
+
+**See:** [RETRACTION.md](RETRACTION.md) for complete details.
+
+**This repository is kept online as a cautionary tale about AI-assisted research pitfalls.**
+
+---
+
+# Universal Triad Framework (RETRACTED)
+
+~~[Original description]~~
+
+**DO NOT USE OR CITE THIS WORK**
+
+---
 # 🌌 Universal Triad - Edge of Chaos Computing
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
